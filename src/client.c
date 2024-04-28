@@ -24,14 +24,14 @@ int main (int argc, char * argv[]){
 
     if (total_length > 300) {
         printf("Total length of arguments exceeds 300 bytes.\n");
-        return 1;
+        _exit(1);
     }
 
 	// Malloc of the message to send 
 	Msg mens = malloc(sizeof(struct msg));
 	if (mens==NULL) {
 		perror ("malloc client");
-        return 1;
+        _exit(1);
 	}
     
     mens->pid = getpid(); 
@@ -86,15 +86,8 @@ int main (int argc, char * argv[]){
 		close(fd_cl);
 	}
 	else if (mens->option==0) {
-		//TO DO, NOT RECEIVING THE NTASK BUT STATUS THING
-		int ntask;
-		int fd_cl = open(fifo, O_RDONLY);  
-		if (fd_cl==-1) {perror("Client: Error opening client FIFO");free (mens);_exit(1);}
-
-		if (read(fd_cl, &ntask, sizeof(int))>0){
-			printf("TASK %d RECEIVED\n", ntask);
-		}
-		close(fd_cl);
+		//TO DO
+		
 	}
 	else if (mens->option==3) {
 		printf("Server going down...\n");
