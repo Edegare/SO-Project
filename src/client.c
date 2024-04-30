@@ -40,6 +40,7 @@ int main (int argc, char * argv[]){
     if (strcmp(argv[1], "status") == 0) {
         mens->time=0;
         mens->option=0;
+		mens->status=0;
 		strcpy(mens->message, "");
     } else if (strcmp(argv[1], "execute") == 0) {
 
@@ -47,11 +48,13 @@ int main (int argc, char * argv[]){
 		else if (strcmp(argv[3], "-p")==0) mens->option=2;
 		else {printf("Unknow option: %s\n", argv[3]); free(mens);_exit(1);}
 		mens->time=atoi(argv[2]);
-        strncpy(mens->message, argv[4], sizeof(mens->message));
+		mens->status=0;
+        snprintf(mens->message, sizeof(mens->message), "%s", argv[4]);
     
 	} else if (strcmp(argv[1], "end") == 0) {
 		mens->time=0;
 		mens->option=3;
+		mens->status=0;
 		strcpy(mens->message, "");
 	} else {
         printf("Unknown command: %s\n", argv[1]);
@@ -76,12 +79,12 @@ int main (int argc, char * argv[]){
 
 
 	if (mens->option==1 || mens->option==2) {
-		int ntask;
+		int id;
 		int fd_cl = open(fifo, O_RDONLY);  
 		if (fd_cl==-1) {perror("Client: Error opening client FIFO");free (mens);_exit(1);}
 
-		if (read(fd_cl, &ntask, sizeof(int))>0){
-			printf("TASK %d RECEIVED\n", ntask);
+		if (read(fd_cl, &id, sizeof(int))>0){
+			printf("TASK %d RECEIVED\n", id);
 		}
 		close(fd_cl);
 	}
