@@ -28,8 +28,8 @@ int main (int argc, char * argv[]){
 	}
 
     // Arguments received
-    char output_folder[8];
-    strcpy(output_folder, argv[1]);
+    char output_folder[16];
+    snprintf(output_folder, sizeof(output_folder), "%s", argv[1]);
     //Number of max parallel taks
     int parallel_tasks_max= atoi(argv[2]);
 
@@ -44,7 +44,11 @@ int main (int argc, char * argv[]){
     int flag_policy=atoi(argv[3]);
 
     GQueue *queue;
-    GArray *array_execution = g_array_new(FALSE, FALSE, sizeof(int));
+    GArray *array_execution = g_array_new(FALSE, FALSE, sizeof(Msg));
+    if (array_execution == NULL) {
+        perror("Server: Failed to create GArray");
+        _exit(1);
+    }
 
     if (flag_policy==0) { 
         // first in first out - Queue
@@ -114,12 +118,12 @@ int main (int argc, char * argv[]){
                             //parse new->message to commands[][] array TODO before the rest 
                             gettimeofday(&start, NULL);
                             // DO TASK AND CREATES A FILE WITH OUTPUT......
-
+                            sleep(2);
                             gettimeofday(&end, NULL);
                             long seconds = end.tv_sec - start.tv_sec;
                             long useconds = end.tv_usec - start.tv_usec;
                             int task_time = ((seconds) * 1000 + useconds/1000.0);
-                            printf("TASK %d DONE\n", task->pid);
+
                             //Change status task to finished and time to real time
                             task->time=task_time;
                             task->status=2;
@@ -147,98 +151,174 @@ int main (int argc, char * argv[]){
 			stop=1;
 		}
         else if ((bytes_read=read(fd_sv_rd,new,sizeof(struct msg))) > 0){
-
+            
             // If client says to end, stop cycle
             if (new->option==3) {
                 stop=1;
                 for (int i=0;i<parallel_tasks_max; i++){
                     if (write(pipeQueue[1], new,sizeof(struct msg)) == -1){
                         perror("Server: Error writing to pipeQueue");
-                        int error=-1;
-                        if (write(fd_cl, &error, sizeof(int)) == -1){
-                            perror("Server: Error writing to client FIFO");
-                        }
                     }
                 }
             }
             else {
                 if (new->option==0) {
+                    //If status option
 
-                }
-                else {
+                    // Executing tasks file 
+                    char file_path_exec[64];
+                    snprintf(file_path_exec, sizeof(file_path_exec), "%s/%s", output_folder, EXECUTING);
 
-                    // tasks of execution to queue - Message client if received or not
-                    char fifo[30];
-                    sprintf (fifo,CLIENT"%d", new->pid);
-
-                    fd_cl = open (fifo, O_WRONLY);
-                    if (fd_cl == -1) {
-                        perror("Server: Error opening client FIFO");
+                    // Open a file for writing executing tasks
+                    int file= open(file_path_exec, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    if (file == -1) {
+                        perror("Server: Error opening file");
                     }
                     else {
-                        // If task finished, put in file
-                        if (new->status==2) {
-                            char file_path[32];
-                            snprintf(file_path, sizeof(file_path), "%s/%s", output_folder, COMPLETE);
-
-                            // Open a file for writing
-                            int file= open(file_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                            if (file == -1) {
-                                perror("Server: Error opening file");
+                        for(int i=0; i<array_execution->len; i++) {
+                            // Write to the file
+                            Msg msg = g_array_index(array_execution, Msg, i);
+                            if (msg == NULL) {
+                                perror("Server: g_array_index error\n");
                             }
                             else {
-                                // Write to the file
-                                ssize_t bytes_written = write(file, new, sizeof(struct msg));
+                                ssize_t bytes_written = write(file, msg, sizeof(struct msg));
                                 if (bytes_written == -1) {
-                                    perror("Server: Error writing to file");
-                                    close(file);
+                                    perror("Server: Error writing to file"); 
                                 }
-                                else {
-                                    // Close the file
-                                    close(file);
+                            }
+                        }
+                        close(file);
+                    }
 
-                                    //Remove task from execution array because it is finished now
-                                    int new_pid = new->pid;
-                                    if (find_msg_remove(array_execution, new_pid)==FALSE) {
-                                        perror("Server: Error finding message to remove from execution array");
+                    // Queue tasks file 
+                    char file_path_queue[64];
+                    snprintf(file_path_queue, sizeof(file_path_queue), "%s/%s", output_folder, QUEUE);
+
+                    // Open a file for writing queue tasks
+                    int file_queue= open(file_path_queue, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    if (file_queue == -1) {
+                        perror("Server: Error opening file");
+                    }
+                    else {
+                        GQueue *tmp_queue = g_queue_copy(queue);
+                        while (!g_queue_is_empty(tmp_queue)) {
+                            Msg queue_task = g_queue_pop_head(tmp_queue);
+                            if (queue_task == NULL) {
+                                perror("Server: queue_task error\n");
+                            }
+                            else {
+                                ssize_t bytes_written = write(file_queue, queue_task, sizeof(struct msg));
+                                if (bytes_written == -1) {
+                                    perror("Server: Error writing to file"); 
+                                }
+                            }
+                            free(queue_task);
+                        }
+                        g_queue_free(tmp_queue);
+                        close(file_queue);
+                    }
+                    
+                }
+                else {
+                    // If task finished, put in file
+                    if (new->status==2) {
+
+                        char file_path[64];
+                        snprintf(file_path, sizeof(file_path), "%s/%s", output_folder, COMPLETE);
+
+                        // Open a file for writing
+                        int file= open(file_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
+                        if (file == -1) {
+                            perror("Server: Error opening file");
+                        }
+                        else {
+                            // Write to the file
+                            ssize_t bytes_written = write(file, new, sizeof(struct msg));
+                            if (bytes_written == -1) {
+                                perror("Server: Error writing to file");
+                                close(file);
+                            }
+                            else {
+                                // Close the file
+                                close(file);
+                                //Remove task from execution array because it is finished now
+                                int new_pid = new->pid;
+
+                                int s=0;
+
+                                for (int i = array_execution->len - 1; s != 1 && i >= 0; i--) {
+                                    Msg msg = g_array_index(array_execution, Msg, i);
+                                    if (msg == NULL) {
+                                        perror("Server: g_array_index error\n");
+                                    }
+                                    else {
+                                        printf("%d\n", msg->pid);
+                                        if (msg->pid == new_pid) {
+                                            g_array_remove_index(array_execution, i);
+                                            free(msg);
+                                            s = 1;
+                                        }
                                     }
                                 }
                             }
                         }
-                        else if (new->status==0) {
-                            fd_cl = open (fifo, O_WRONLY);
-                            if (fd_cl == -1) {
-                                perror("Server: Error opening client FIFO");
-                            }
-                            else {
-                                // If task is coming from client put in queue
-                                g_queue_push_tail(queue, new);
-                                int id=new->pid;
-                                //Send the number of task to client
-                                if (write(fd_cl, &id, sizeof(int)) == -1){
-                                    perror("Server: Error writing to client FIFO");
-                                }
-                                close (fd_cl);
-                            }
-                        }
+                    }
+                    // Tasks from clients
+                    else if (new->status==0) {
+                        char fifo[30];
+                        sprintf (fifo,CLIENT"%d", new->pid);
 
-                        guint array_size = g_array_get_element_size(array_execution);
-                        // While queue not empty and at least one child is waiting for a task
-                        while (array_size < parallel_tasks_max && g_queue_is_empty(queue)) {
-                            Msg m = g_queue_pop_tail(queue);
-                            m->status=1;
-                            if (write(pipeQueue[1], m,sizeof(struct msg)) == -1){
-                                perror("Server: Error writing to pipeQueue");
-                                int error=-1;
-                                if (write(fd_cl,&error, sizeof(int)) == -1){
+                        fd_cl = open (fifo, O_WRONLY);
+                        if (fd_cl == -1) {
+                            perror("Server: Error opening client FIFO");
+                        }
+                        else {
+                            Msg task_queue = malloc(sizeof(struct msg));
+                            if (task_queue == NULL) {
+                                perror("Server: malloc task_queue");
+                            } 
+                            else {
+                                // Copy the contents of new to task_queue
+                                memcpy(task_queue, new, sizeof(struct msg));
+
+                                // Put the task_queue in the queue
+                                g_queue_push_tail(queue, task_queue);
+                                
+                                // Send the task ID to the client
+                                int id = task_queue->pid;
+                                if (write(fd_cl, &id, sizeof(int)) == -1) {
                                     perror("Server: Error writing to client FIFO");
                                 }
                             }
-                            else {
-                                g_array_append_vals(array_execution, m,1);
-                            }
+                            // Close the client FIFO
+                            close(fd_cl);
                         }
                     }
+
+                    // While queue not empty and at least one child is waiting for a task
+                    while (array_execution->len < parallel_tasks_max && !(g_queue_is_empty(queue))) {
+                        Msg m = g_queue_pop_tail(queue);
+                        m->status=1;
+                        // Send to pipe of childs
+                        if (write(pipeQueue[1], m,sizeof(struct msg)) == -1){
+                            perror("Server: Error writing to pipeQueue");
+                        }
+                        else {
+                            // Send to execution array
+                            Msg new_m = malloc(sizeof(struct msg));
+                            if (new_m == NULL) {
+                                perror("Server: malloc new_m");
+                            } else {
+
+                                memcpy(new_m, m, sizeof(struct msg));
+
+                                g_array_append_val(array_execution, new_m);
+                            }
+                        }
+                        free(m);
+                    }
+                    
                 }
                 
             }

@@ -5,6 +5,8 @@
 #define CLIENT "src/fifo_client"
 
 #define COMPLETE "completed.txt" 
+#define EXECUTING "executing.txt" 
+#define QUEUE "queue.txt" 
 
 #define MAX_TASKS 3
 #define MAX_PROGRAMS 10
