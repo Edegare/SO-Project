@@ -178,19 +178,19 @@ int main (int argc, char * argv[]){
                     else {
                         // If task finished, put in file
                         if (new->status==2) {
-                            char file_path[16];
+                            char file_path[32];
                             snprintf(file_path, sizeof(file_path), "%s/%s", output_folder, COMPLETE);
 
                             // Open a file for writing
                             int file= open(file_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
                             if (file == -1) {
-                                perror("Error opening file");
+                                perror("Server: Error opening file");
                             }
                             else {
                                 // Write to the file
                                 ssize_t bytes_written = write(file, new, sizeof(struct msg));
                                 if (bytes_written == -1) {
-                                    perror("Error writing to file");
+                                    perror("Server: Error writing to file");
                                     close(file);
                                 }
                                 else {
@@ -199,11 +199,9 @@ int main (int argc, char * argv[]){
 
                                     //Remove task from execution array because it is finished now
                                     int new_pid = new->pid;
-                                    guint index = g_array_find_index(array_execution, NULL, find_msg, GINT_TO_POINTER(new_pid));
-                                    
-                                    Msg msg_remove = g_array_index(array_execution, Msg, index);
-                                    free(msg_remove);
-                                    g_array_remove_index(array_execution, index);
+                                    if (find_msg_remove(array_execution, new_pid)==FALSE) {
+                                        perror("Server: Error finding message to remove from execution array");
+                                    }
                                 }
                             }
                         }
@@ -222,21 +220,23 @@ int main (int argc, char * argv[]){
                                 }
                                 close (fd_cl);
                             }
-                            /* if (write(pipeQueue[1], new,sizeof(struct msg)) == -1){
+                        }
+
+                        guint array_size = g_array_get_element_size(array_execution);
+                        // While queue not empty and at least one child is waiting for a task
+                        while (array_size < parallel_tasks_max && g_queue_is_empty(queue)) {
+                            Msg m = g_queue_pop_tail(queue);
+                            m->status=1;
+                            if (write(pipeQueue[1], m,sizeof(struct msg)) == -1){
                                 perror("Server: Error writing to pipeQueue");
                                 int error=-1;
                                 if (write(fd_cl,&error, sizeof(int)) == -1){
                                     perror("Server: Error writing to client FIFO");
                                 }
-                            */
-                        }
-
-                        guint array_size = g_array_get_size(array_execution);
-                        // While queue not empty and at least one child is waiting for a task
-                        while (array_size < parallel_tasks_max && g_queue_is_empty(queue)) {
-                            Msg m = g_queue_pop_tail(queue);
-                            m->status=1;
-                            g_array_append_vals(array_execution, m,1);
+                            }
+                            else {
+                                g_array_append_vals(array_execution, m,1);
+                            }
                         }
                     }
                 }

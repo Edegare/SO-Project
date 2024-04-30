@@ -3,6 +3,6 @@
 
 #include <glib.h>
 
-gboolean find_msg(gpointer element, gpointer pid);
+gboolean find_msg_remove(GArray *array, int pid);
 
 #endif
