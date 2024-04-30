@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -g -Iinclude
-LDFLAGS =
+CFLAGS = -Wall -g -Iinclude `pkg-config --cflags --libs glib-2.0`
+LDFLAGS = `pkg-config --libs glib-2.0`
 
 all: folders orchestrator client
 
@@ -11,11 +11,11 @@ client: bin/client
 folders:
 	@mkdir -p src include obj bin tmp
 
-bin/orchestrator: obj/orchestrator.o
-	$(CC) $(LDFLAGS) $^ -o $@
+bin/orchestrator: obj/orchestrator.o obj/aux.o obj/parser.o
+	$(CC) $^ -o $@ $(LDFLAGS)
 
 bin/client: obj/client.o
-	$(CC) $(LDFLAGS) $^ -o $@
+	$(CC) $(LDFLAGS) $^ -o $@ 
 
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
