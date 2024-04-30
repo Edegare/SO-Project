@@ -89,7 +89,7 @@ int main (int argc, char * argv[]){
 		close(fd_cl);
 	}
 	else if (mens->option==0) {
-		//TO DO
+		
 		
 	}
 	else if (mens->option==3) {
