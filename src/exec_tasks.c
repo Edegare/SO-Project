@@ -6,13 +6,14 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <string.h>
-#include "../include/defines.h"
+
+#include "defines.h"
 
 void execute_command(char *command) {
     int pipes[32][2];
     int currPipe = 0;
     pid_t pid;
-    char *args[1000];
+    char *args[300];
     char *token;
     char *rest = command;
     int i = 0;
@@ -30,14 +31,14 @@ void execute_command(char *command) {
             if ((pid = fork()) == 0) {
                 close(pipes[currPipe][0]);
                 if (currPipe != 0) {
-                    dup2(pipes[currPipe - 1][0], STDIN_FILENO);
+                    dup2(pipes[currPipe - 1][0], 0);
                     close(pipes[currPipe - 1][0]);
                 }
-                dup2(pipes[currPipe][1], STDOUT_FILENO);
+                dup2(pipes[currPipe][1], 1);
                 close(pipes[currPipe][1]);
                 execvp(args[0], args + 1);
-                perror("execvp");
-                exit(EXIT_FAILURE);
+                perror("Server: execvp");
+                _exit(127);
             } else {
                 close(pipes[currPipe][1]);
                 if (currPipe != 0) {
@@ -55,11 +56,11 @@ void execute_command(char *command) {
     args[i] = NULL;
     if ((pid = fork()) == 0) {
         if (currPipe != 0) {
-            dup2(pipes[currPipe - 1][0], STDIN_FILENO);
+            dup2(pipes[currPipe - 1][0], 0);
             close(pipes[currPipe - 1][0]);
         }
         execvp(args[0], args + 1);
-        perror("execvp");
-        exit(EXIT_FAILURE);
+        perror("Server: execvp");
+        _exit(127);
     }
 }

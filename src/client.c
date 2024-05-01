@@ -89,7 +89,95 @@ int main (int argc, char * argv[]){
 		close(fd_cl);
 	}
 	else if (mens->option==0) {
+
+		// Receive Output folder from server
+		char output_folder[16];
+		int fd_cl = open(fifo, O_RDONLY);  
+		if (fd_cl==-1) {perror("Client: Error opening client FIFO");free (mens);unlink(fifo);_exit(1);}
+
+		if (read(fd_cl, &output_folder, sizeof(char *))<=0){
+			perror("Client: Error opening client FIFO");
+
+		}
+		close(fd_cl);
+
+		char file_path_exec[64];
+		snprintf(file_path_exec, sizeof(file_path_exec), "%s/%s", output_folder, EXECUTING);
+
+		printf("Executing:\n");
+		// Open a file for writing executing tasks
+		int file_exec= open(file_path_exec, O_RDONLY);
+		if (file_exec == -1) {
+			//perror("Client: Error opening file");
+		}
+		else {
+			Msg message = malloc(sizeof(struct msg)); 
+
+			if (message == NULL) {
+				perror("Client: Error malloc message");
+			}
+			else {
+				ssize_t bytes_read;
+				while ((bytes_read = read(file_exec, message, sizeof(struct msg))) > 0) {
+					printf("%d %s\n",message->pid, message->message);
+					memset(message, 0, sizeof(struct msg));
+				}
+			}
+			close(file_exec);
+			free(message);
+		}
+
+		char file_path_sched[64];
+		snprintf(file_path_sched, sizeof(file_path_sched), "%s/%s", output_folder, QUEUE);
+
+		printf("\nScheduled:\n");
+		// Open a file for writing scheduled tasks
+		int file_sched= open(file_path_sched, O_RDONLY);
+		if (file_sched == -1) {
+			//perror("Client: Error opening file");
+		}
+		else {
+			Msg message = malloc(sizeof(struct msg)); 
+
+			if (message == NULL) {
+				perror("Client: Error malloc message");
+			}
+			else {
+				ssize_t bytes_read;
+				while ((bytes_read = read(file_sched, message, sizeof(struct msg))) > 0) {
+					printf("%d %s\n",message->pid, message->message);
+					memset(message, 0, sizeof(struct msg));
+				}
+			}
+			close(file_sched);
+			free(message);
+		}
+
+		char file_path_comp[64];
+		snprintf(file_path_comp, sizeof(file_path_comp), "%s/%s", output_folder, COMPLETE);
 		
+		printf("\nCompleted:\n");
+		// Open a file for writing completed tasks
+		int file_comp= open(file_path_comp, O_RDONLY);
+		if (file_comp == -1) {
+			//perror("Client: Error opening file");
+		}
+		else {
+			Msg message = malloc(sizeof(struct msg)); 
+
+			if (message == NULL) {
+				perror("Client: Error malloc message");
+			}
+			else {
+				ssize_t bytes_read;
+				while ((bytes_read = read(file_comp, message, sizeof(struct msg))) > 0) {
+					printf("%d %s %d ms\n",message->pid, message->message, message->time);
+					memset(message, 0, sizeof(struct msg));
+				}
+			}
+			close(file_comp);
+			free(message);
+		}
 		
 	}
 	else if (mens->option==3) {
