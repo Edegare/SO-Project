@@ -10,7 +10,6 @@
 #include <glib.h>
 
 #include "defines.h"
-#include "aux.h"
 
 /* executar o servidor:
 $ ./orchestrator output_folder parallel-tasks sched-policy
@@ -38,7 +37,7 @@ int main (int argc, char * argv[]){
 		_exit(1);
     }
 
-
+    
 
     // flag 
     int flag_policy=atoi(argv[3]);
@@ -91,7 +90,7 @@ int main (int argc, char * argv[]){
 		_exit(1);
 	}
 
-    // == CHILD DOES TASKS ==
+    // == CHILD EXEC TASKS ==
     for (int i=0; i<parallel_tasks_max; i++) {
         int bytes_read_child;
 
@@ -118,7 +117,7 @@ int main (int argc, char * argv[]){
                             //parse new->message to commands[][] array TODO before the rest 
                             gettimeofday(&start, NULL);
                             // DO TASK AND CREATES A FILE WITH OUTPUT......
-                            sleep(2);
+                            sleep(10);
                             gettimeofday(&end, NULL);
                             long seconds = end.tv_sec - start.tv_sec;
                             long useconds = end.tv_usec - start.tv_usec;
@@ -165,7 +164,7 @@ int main (int argc, char * argv[]){
                 if (new->option==0) {
                     //If status option
 
-                    // Executing tasks file 
+                    // Executing tasks file ----------------
                     char file_path_exec[64];
                     snprintf(file_path_exec, sizeof(file_path_exec), "%s/%s", output_folder, EXECUTING);
 
@@ -191,7 +190,7 @@ int main (int argc, char * argv[]){
                         close(file);
                     }
 
-                    // Queue tasks file 
+                    // Queue tasks file ----------------
                     char file_path_queue[64];
                     snprintf(file_path_queue, sizeof(file_path_queue), "%s/%s", output_folder, QUEUE);
 
@@ -219,6 +218,24 @@ int main (int argc, char * argv[]){
                         close(file_queue);
                     }
                     
+                    //Send output folder
+                    char fifo[30];
+                    sprintf (fifo,CLIENT"%d", new->pid);
+
+                    fd_cl = open (fifo, O_WRONLY);
+                    if (fd_cl == -1) {
+                        perror("Server: Error opening client FIFO");
+                    }
+                    else {
+                        
+                        
+                        if (write(fd_cl, &output_folder, sizeof(int)) == -1) {
+                            perror("Server: Error writing to client FIFO");
+                        }
+                        
+                        // Close the client FIFO
+                        close(fd_cl);
+                    }
                 }
                 else {
                     // If task finished, put in file
@@ -253,7 +270,6 @@ int main (int argc, char * argv[]){
                                         perror("Server: g_array_index error\n");
                                     }
                                     else {
-                                        printf("%d\n", msg->pid);
                                         if (msg->pid == new_pid) {
                                             g_array_remove_index(array_execution, i);
                                             free(msg);
@@ -352,47 +368,3 @@ int main (int argc, char * argv[]){
 
 	return 0;
 }
-
-/* for (int i=0;i<parallel_tasks; i++) {
-            pid_t who = waitpid(-1, NULL, WNOHANG);
-            // If a pid finishes
-            if (who > 0) {
-                parallel_tasks--;
-            } 
-            // error
-            else if (who == -1) {
-                perror("Server: waitpid");
-            }
-            // else continue
-        } */
-/* while(parallel_tasks<parallel_tasks_max && tasks_queue>0) {
-
-                    Msg task= malloc(sizeof(struct msg));
-                    if (task==NULL) {
-                        perror ("Server: malloc server message task");
-                    }
-                    else {
-                        parallel_tasks++;
-                        tasks_queue--;
-                        int fork_ret= fork();
-
-                        if (fork_ret == -1) {
-                            perror ("fork");
-                            parallel_tasks--;
-                        }
-
-                        else if (fork_ret==0) {
-
-                            close(pipeQueue[1]);
-                            if ((bytes_read=read(pipeQueue[0],task,sizeof(struct msg))) > 0){
-                                close(pipeQueue[0]);
-                                //parse new->message to commands[][] array TODO before the rest 
-                                //printf("TASK %d DONE\n", task->pid);
-                            
-                            
-                            }
-                            _exit (0);
-                        }
-                        
-                    }
-                } */
