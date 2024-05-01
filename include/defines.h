@@ -8,11 +8,6 @@
 #define EXECUTING "executing.txt" 
 #define QUEUE "queue.txt" 
 
-#define MAX_TASKS 3
-#define MAX_PROGRAMS 10
-#define MAX_PROGRAM_LENGTH 300
-#define MAX_ARGUMENTS 10
-#define MAX_ARGUMENT_LENGTH 50
 
 typedef struct msg{
     int pid;

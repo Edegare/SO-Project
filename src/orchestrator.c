@@ -9,6 +9,7 @@
 #include <string.h>
 #include <glib.h>
 
+#include "exec_tasks.h"
 #include "defines.h"
 
 /* executar o servidor:
@@ -90,7 +91,7 @@ int main (int argc, char * argv[]){
 		_exit(1);
 	}
 
-    // == CHILD EXEC TASKS ==
+    // ==== CHILD EXEC TASKS ====
     for (int i=0; i<parallel_tasks_max; i++) {
         int bytes_read_child;
 
@@ -114,13 +115,19 @@ int main (int argc, char * argv[]){
                     if ((bytes_read_child=read(pipeQueue[0],task,sizeof(struct msg))) > 0){
                         if (task->option==3) stop=1;
                         else {
-                            //parse new->message to commands[][] array TODO before the rest 
+                            char *commands = strdup(task->message);
+                            int id = task->pid; 
+
                             gettimeofday(&start, NULL);
-                            // DO TASK AND CREATES A FILE WITH OUTPUT......
-                            sleep(10);
+
+                            // EXECUTES TASK AND CREATES A FILE WITH OUTPUT AND ERROR
+                            execute_command(commands, id,output_folder);
+                            sleep(10); // Just to test
+                            
                             gettimeofday(&end, NULL);
                             long seconds = end.tv_sec - start.tv_sec;
                             long useconds = end.tv_usec - start.tv_usec;
+                            // Real time of the task
                             int task_time = ((seconds) * 1000 + useconds/1000.0);
 
                             //Change status task to finished and time to real time
