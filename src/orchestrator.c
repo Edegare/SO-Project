@@ -27,7 +27,7 @@ int main (int argc, char * argv[]){
 	}
 
     // Arguments received
-    char output_folder[16];
+    char output_folder[32];
     snprintf(output_folder, sizeof(output_folder), "%s", argv[1]);
     //Number of max parallel taks
     int parallel_tasks_max= atoi(argv[2]);
@@ -169,8 +169,8 @@ int main (int argc, char * argv[]){
                     snprintf(file_path_exec, sizeof(file_path_exec), "%s/%s", output_folder, EXECUTING);
 
                     // Open a file for writing executing tasks
-                    int file= open(file_path_exec, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                    if (file == -1) {
+                    int file_exec= open(file_path_exec, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    if (file_exec == -1) {
                         perror("Server: Error opening file");
                     }
                     else {
@@ -181,13 +181,13 @@ int main (int argc, char * argv[]){
                                 perror("Server: g_array_index error\n");
                             }
                             else {
-                                ssize_t bytes_written = write(file, msg, sizeof(struct msg));
+                                ssize_t bytes_written = write(file_exec, msg, sizeof(struct msg));
                                 if (bytes_written == -1) {
                                     perror("Server: Error writing to file"); 
                                 }
                             }
                         }
-                        close(file);
+                        close(file_exec);
                     }
 
                     // Queue tasks file ----------------
@@ -212,7 +212,6 @@ int main (int argc, char * argv[]){
                                     perror("Server: Error writing to file"); 
                                 }
                             }
-                            free(queue_task);
                         }
                         g_queue_free(tmp_queue);
                         close(file_queue);
@@ -229,7 +228,7 @@ int main (int argc, char * argv[]){
                     else {
                         
                         
-                        if (write(fd_cl, &output_folder, sizeof(int)) == -1) {
+                        if (write(fd_cl, output_folder, sizeof(output_folder)) == -1) {
                             perror("Server: Error writing to client FIFO");
                         }
                         
@@ -313,7 +312,7 @@ int main (int argc, char * argv[]){
                     }
 
                     // While queue not empty and at least one child is waiting for a task
-                    while (array_execution->len < parallel_tasks_max && !(g_queue_is_empty(queue))) {
+                    if (array_execution->len < parallel_tasks_max && !(g_queue_is_empty(queue))) {
                         Msg m = g_queue_pop_tail(queue);
                         m->status=1;
                         // Send to pipe of childs

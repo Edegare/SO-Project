@@ -91,11 +91,11 @@ int main (int argc, char * argv[]){
 	else if (mens->option==0) {
 
 		// Receive Output folder from server
-		char output_folder[16];
+		char output_folder[32];
 		int fd_cl = open(fifo, O_RDONLY);  
 		if (fd_cl==-1) {perror("Client: Error opening client FIFO");free (mens);unlink(fifo);_exit(1);}
 
-		if (read(fd_cl, &output_folder, sizeof(char *))<=0){
+		if (read(fd_cl, output_folder, sizeof(output_folder))<=0){
 			perror("Client: Error opening client FIFO");
 
 		}
