@@ -18,7 +18,7 @@ void execute_command(char *command, int id, char *output_folder) {
     int i = 0;
 
     int output_fd, error_fd;
-
+    
     //Output file
     char output_file[64];
     //Error file
