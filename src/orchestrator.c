@@ -73,6 +73,14 @@ int main (int argc, char * argv[]){
         return -1;
     }
 
+    //Check if FIFO exists, If it does remove it
+    if (access(SERVER,F_OK) != -1) {
+        if (unlink(SERVER) == -1) {
+            perror("Server: Error removing existing FIFO");
+            _exit(1);
+        }
+    }
+
     // Server FIFO creation
 	if (mkfifo(SERVER, 0666) == -1) {perror("Server: Error creating server FIFO");_exit(1);}
 	
