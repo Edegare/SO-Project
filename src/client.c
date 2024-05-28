@@ -9,6 +9,11 @@
 
 #include "defines.h"
 
+//./bin/client status -> to check status
+//./bin/client execute time -option "progs"-> -u = single program ; -p = pipeline program.
+
+//for script -> chmod +x tests/client_script.sh -> ./tests/client_script.sh
+
 int main (int argc, char * argv[]){
 
 	// check if arguments valid in lenght and number
@@ -37,26 +42,26 @@ int main (int argc, char * argv[]){
     mens->pid = getpid(); 
 
 	// Check arguments passed to client
-    if (strcmp(argv[1], "status") == 0) {
+    if (strcmp(argv[1], "status") == 0) { // STATUS
         mens->time=0;
         mens->option=0;
 		mens->status=0;
 		strcpy(mens->message, "");
-    } else if (strcmp(argv[1], "execute") == 0) {
+    } else if (strcmp(argv[1], "execute") == 0) { // EXECUTE
 
         if (strcmp(argv[3], "-u")==0) mens->option=1;
 		else if (strcmp(argv[3], "-p")==0) mens->option=2;
-		else {printf("Unknow option: %s\n", argv[3]); free(mens);_exit(1);}
+		else {printf("Unknown option: %s\n", argv[3]); free(mens);_exit(1);}
 		mens->time=atoi(argv[2]);
 		mens->status=0;
         snprintf(mens->message, sizeof(mens->message), "%s", argv[4]);
     
-	} else if (strcmp(argv[1], "end") == 0) {
+	} else if (strcmp(argv[1], "end") == 0) { //END
 		mens->time=0;
 		mens->option=3;
 		mens->status=0;
 		strcpy(mens->message, "");
-	} else {
+	} else { // ERROR
         printf("Unknown command: %s\n", argv[1]);
 		free(mens);
         _exit(1);
@@ -77,8 +82,8 @@ int main (int argc, char * argv[]){
 	write(fd_sv, mens, sizeof(struct msg));
     close(fd_sv);
 
-
-	if (mens->option==1 || mens->option==2) {
+	// ========EXECUTE OPTIONS=========
+	if (mens->option==1 || mens->option==2) { 
 		int id;
 		int fd_cl = open(fifo, O_RDONLY);  
 		if (fd_cl==-1) {perror("Client: Error opening client FIFO");free (mens);_exit(1);}
@@ -88,6 +93,7 @@ int main (int argc, char * argv[]){
 		}
 		close(fd_cl);
 	}
+	// ========STATUS OPTION=========
 	else if (mens->option==0) {
 
 		// Receive Output folder from server
@@ -108,7 +114,7 @@ int main (int argc, char * argv[]){
 		// Open a file for writing executing tasks
 		int file_exec= open(file_path_exec, O_RDONLY);
 		if (file_exec == -1) {
-			//perror("Client: Error opening file");
+			perror("Client: Error opening file");
 		}
 		else {
 			Msg message = malloc(sizeof(struct msg)); 
@@ -134,7 +140,7 @@ int main (int argc, char * argv[]){
 		// Open a file for writing scheduled tasks
 		int file_sched= open(file_path_sched, O_RDONLY);
 		if (file_sched == -1) {
-			//perror("Client: Error opening file");
+			perror("Client: Error opening file");
 		}
 		else {
 			Msg message = malloc(sizeof(struct msg)); 
@@ -160,7 +166,7 @@ int main (int argc, char * argv[]){
 		// Open a file for writing completed tasks
 		int file_comp= open(file_path_comp, O_RDONLY);
 		if (file_comp == -1) {
-			//perror("Client: Error opening file");
+			perror("Client: Error opening file");
 		}
 		else {
 			Msg message = malloc(sizeof(struct msg)); 
@@ -180,6 +186,7 @@ int main (int argc, char * argv[]){
 		}
 		
 	}
+	// ========END OPTION=========
 	else if (mens->option==3) {
 		printf("Server going down...\n");
 	}

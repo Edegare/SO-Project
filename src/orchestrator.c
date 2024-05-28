@@ -13,7 +13,8 @@
 #include "defines.h"
 
 /* executar o servidor:
-$ ./orchestrator output_folder parallel-tasks sched-policy
+./bin/orchestrator output_folder parallel-tasks sched-policy
+./bin/orchestrator tmp 5 0
 Argumentos:
 1. output-folder: pasta onde são guardados os ficheiros com o output de tarefas executadas.
 2. parallel-tasks: número de tarefas que podem ser executadas em paralelo.
@@ -87,7 +88,7 @@ int main (int argc, char * argv[]){
 
     int fd_sv_rd, fd_sv_wr, fd_cl;
 
-
+    // Associating both file descriptors - bidirectional communication and the correct functioning
 	fd_sv_rd = open (SERVER, O_RDONLY);
 	if (fd_sv_rd == -1) {
 		perror("Server: Error opening server FIFO");
@@ -164,11 +165,13 @@ int main (int argc, char * argv[]){
 			perror ("Server: malloc server message new");
 			stop=1;
 		}
+        // READ MESSAGES FROM CLIENTS
         else if ((bytes_read=read(fd_sv_rd,new,sizeof(struct msg))) > 0){
             
-            // If client says to end, stop cycle
+            //========END OPTION=======
             if (new->option==3) {
                 stop=1;
+                // Stop child work
                 for (int i=0;i<parallel_tasks_max; i++){
                     if (write(pipeQueue[1], new,sizeof(struct msg)) == -1){
                         perror("Server: Error writing to pipeQueue");
@@ -176,6 +179,7 @@ int main (int argc, char * argv[]){
                 }
             }
             else {
+                //========STATUS OPTION=======
                 if (new->option==0) {
                     //If status option
 
