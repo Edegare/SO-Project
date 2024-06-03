@@ -28,10 +28,10 @@ Exemplo:
 
 ### Inicialização dos clientes: 
     
-- Para verificar estado do servidor 
+Para verificar estado do servidor 
     ./bin/client status
 
-- Para executar programa (-u = single ; -p = pipeline)
+Para executar programa (-u = single ; -p = pipeline)
     ./bin/client execute time -option "progs"
 
 Uso de script para criar clientes e suas tarefas:
