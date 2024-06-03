@@ -16,6 +16,7 @@ Dentro do seu repositório, use para compilar:
 
 
 ### Inicialização do Servidor: 
+
     ./bin/orchestrator output_folder parallel-tasks sched-policy
 
 Argumentos:
@@ -23,15 +24,18 @@ Argumentos:
 2. parallel-tasks: número de tarefas que podem ser executadas em paralelo.
 3. sched-policy: identificador da política de escalonamento, caso o servidor suporte várias políticas.
 
-Exemplo: 
+Exemplo:
+
     ./bin/orchestrator tmp 5 0 -- Máximo de 5 tarefas a executar concorrentemente
 
 ### Inicialização dos clientes: 
     
-Para verificar estado do servidor 
+Para verificar estado do servidor:
+
     ./bin/client status
 
-Para executar programa (-u = single ; -p = pipeline)
+Para executar programa (-u = single ; -p = pipeline):
+
     ./bin/client execute time -option "progs"
 
 Uso de script para criar clientes e suas tarefas:
